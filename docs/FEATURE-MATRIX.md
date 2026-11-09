@@ -17,9 +17,9 @@
 
 ```text
 npm run typecheck          通过
-npm test -- --reporter=dot 9 个测试文件 / 58 个测试通过
+npm test -- --reporter=dot 11 个测试文件 / 66 个测试通过
 npm run build              通过
-npx playwright test        38 个 E2E 通过
+npx playwright test        48 个 E2E 通过
 npm run test:pages         GitHub Pages 子路径离线冒烟通过
 ```
 
@@ -35,6 +35,10 @@ npm run test:pages         GitHub Pages 子路径离线冒烟通过
 | 移动端 360px 内容列、5 项底部导航、无桌面全局头 | ✅ 已完整实现 | E2E `type-mobile`；`.ty-global-header` 隐藏、容器宽 360、底部导航 5 项 |
 | 模式胶囊「看汉字打读音 / 句子填空」 | ✅ 已完整实现（句子填空禁用） | `TypeTopbar` 真实渲染禁用项并标注范围；不会执行假功能 |
 | 隐藏输入框接收键盘/IME | ✅ 已完整实现 | `.ty-hidden-input` 为 1×1；桌面 keydown、移动端 input/composition 均接入 |
+| 网页内置键盘开关与持久化 | ✅ 已完整实现 | `TypeKeyboard`、`Settings.builtInKeyboard`；练习内按钮与设置页均可切换，刷新后保持 |
+| 五十音键盘（浊音/半浊音/小假名/长音） | ✅ 已完整实现 | `src/lib/kanaKeyboard.ts` 映射与单测；E2E 点击假名连续完成两词 |
+| 罗马字 QWERTY 布局 | ✅ 已完整实现 | 同一匹配器接收字母键；E2E 用 `toRomaji` 点按完成整词 |
+| 内置键盘避开系统软键盘 | ✅ 已完整实现 | 启用时隐藏输入禁用并失焦；E2E 断言阅读区点击不聚焦输入 |
 | 逐键罗马字匹配 | ✅ 已完整实现 | `src/lib/romajiMatcher.ts`；单元测试覆盖 pending、促音、拨音、拗音、替代读音 |
 | pending 不判错、不推进 | ✅ 已完整实现 | E2E `type-core` 输入 `enk` 后断言 `.ty-pending="k"` 且无错误 |
 | Backspace 只清 pending | ✅ 已完整实现 | E2E `type-core` 按 Backspace 后 pending 消失、词仍在 |
@@ -44,7 +48,7 @@ npm run test:pages         GitHub Pages 子路径离线冒烟通过
 | 活动计时（面板/保存/隐藏页暂停） | ✅ 已完整实现 | `activeMs`、`pageHidden`、`suspended`、`submitting`、`held` 状态共同暂停 |
 | 连击：5 次出现、每 10 次 bump、30 起金色 | ✅ 已完整实现 | E2E `type-interactions` 连击用例；CSS `.ty-combo.is-bump/.is-hot` |
 | 按住空格/Tab/按钮显示完整读音 | ✅ 已完整实现 | E2E `type-core`、`type-settings`；松开隐藏，提示写入 `hintUsed` |
-| 提示设置默认显示读音 | ✅ 已完整实现 | `DEFAULT_SETTINGS.showReading=true`；E2E 切换「不显示」后槽位变 `・` |
+| 读音默认隐藏 | ✅ 已完整实现 | `DEFAULT_SETTINGS.showReading=false`；E2E 断言默认槽位为 `・`，开启后所有词按“看了读音”记录 |
 | 三次错误显示「跳过」 | ✅ 已完整实现 | E2E `type-core` 三次错误后按钮出现并真实推进 |
 | `Esc` 跳过 | ✅ 已完整实现 | `onKeyDown` 调用 `skipWord()`；保存 `result:"skipped"` |
 | 完成后自动进入下一词 | ✅ 已完整实现 | `settings.autoAdvance`；E2E 默认路径 |

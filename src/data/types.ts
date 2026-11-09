@@ -190,6 +190,8 @@ export interface Settings {
   showReading: boolean;
   romajiInput: boolean;
   kanaInput: boolean;
+  /** Show the in-page kana / romaji keyboard instead of the native IME. */
+  builtInKeyboard: boolean;
   keySound: boolean;
   speakAfterComplete: boolean;
   autoAdvance: boolean;

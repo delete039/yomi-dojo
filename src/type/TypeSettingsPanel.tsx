@@ -3,7 +3,11 @@ import { useApp } from "../app/AppContext";
 import type { Settings } from "../data/types";
 import { cx } from "../lib/utils";
 
-type BooleanSettingKey = "showReading" | "keySound" | "speakAfterComplete";
+type BooleanSettingKey =
+  | "showReading"
+  | "builtInKeyboard"
+  | "keySound"
+  | "speakAfterComplete";
 
 function TypeSettingRow({
   label,
@@ -58,6 +62,10 @@ export function TypeSettingsPanel() {
       <TypeSettingRow label="读音">
         {booleanButton("showReading", true, "显示读音")}
         {booleanButton("showReading", false, "不显示")}
+      </TypeSettingRow>
+      <TypeSettingRow label="键盘">
+        {booleanButton("builtInKeyboard", false, "系统键盘")}
+        {booleanButton("builtInKeyboard", true, "网页内置")}
       </TypeSettingRow>
       <TypeSettingRow label="按键音">
         {booleanButton("keySound", true, "开")}

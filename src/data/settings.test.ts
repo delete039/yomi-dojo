@@ -12,6 +12,14 @@ describe("typing settings", () => {
     expect(normalizeSettings(undefined).showReading).toBe(false);
   });
 
+  it("keeps the in-page keyboard off until explicitly enabled", () => {
+    expect(DEFAULT_SETTINGS.builtInKeyboard).toBe(false);
+    expect(normalizeSettings(undefined).builtInKeyboard).toBe(false);
+    expect(normalizeSettings({ builtInKeyboard: true }).builtInKeyboard).toBe(
+      true,
+    );
+  });
+
   it("keeps an explicit show-reading opt-in after migration", () => {
     const migrated = migrateSettings(
       { ...DEFAULT_SETTINGS, showReading: true },

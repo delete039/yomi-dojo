@@ -35,6 +35,7 @@ import {
   type TypingMatcherSnapshot,
 } from "../lib/romajiMatcher";
 import { cx } from "../lib/utils";
+import { TypeKeyboard, type TypeKeyboardMode } from "./TypeKeyboard";
 
 interface WordUiState {
   runtimeId: string;
@@ -135,7 +136,7 @@ export function TypeSession({
   suspended: boolean;
   onFinished: (summary: SessionSummary) => void;
 }) {
-  const { settings, recordSessionAnswer } = useApp();
+  const { settings, recordSessionAnswer, updateSettings, notify } = useApp();
   const item = session.queue[session.currentIndex];
   const word = useMemo(
     () =>
@@ -171,6 +172,9 @@ export function TypeSession({
     kana: 0,
     streak: correctStreak(session.answers),
   }));
+  const [keyboardMode, setKeyboardMode] = useState<TypeKeyboardMode>(
+    settings.kanaInput ? "kana" : "romaji",
+  );
 
   const inputRef = useRef<HTMLInputElement>(null);
   const slotsRef = useRef<HTMLDivElement>(null);
@@ -187,6 +191,7 @@ export function TypeSession({
   const errorsRef = useRef(0);
   const hintUsedRef = useRef(false);
   const showReadingRef = useRef(settings.showReading);
+  const builtInKeyboardRef = useRef(settings.builtInKeyboard);
   const streakRef = useRef(correctStreak(session.answers));
   const maxStreakRef = useRef(
     session.answers.reduce(
@@ -211,6 +216,30 @@ export function TypeSession({
     showReadingRef.current = settings.showReading;
   }, [settings.showReading]);
 
+  useEffect(() => {
+    builtInKeyboardRef.current = settings.builtInKeyboard;
+  }, [settings.builtInKeyboard]);
+
+  useEffect(() => {
+    if (
+      keyboardMode === "kana" &&
+      !settings.kanaInput &&
+      settings.romajiInput
+    ) {
+      setKeyboardMode("romaji");
+    } else if (
+      keyboardMode === "romaji" &&
+      !settings.romajiInput &&
+      settings.kanaInput
+    ) {
+      setKeyboardMode("kana");
+    }
+  }, [
+    keyboardMode,
+    settings.kanaInput,
+    settings.romajiInput,
+  ]);
+
   const activeNow = useCallback(() => {
     return (
       activeMsRef.current +
@@ -221,7 +250,7 @@ export function TypeSession({
   }, []);
 
   const focusInput = useCallback(() => {
-    if (submittingRef.current || saveError) return;
+    if (submittingRef.current || saveError || builtInKeyboardRef.current) return;
     inputRef.current?.focus({ preventScroll: true });
   }, [saveError]);
 
@@ -287,7 +316,11 @@ export function TypeSession({
       window.clearTimeout(ringTimerRef.current);
       ringTimerRef.current = null;
     }
-    window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 20);
+    window.setTimeout(() => {
+      if (!builtInKeyboardRef.current) {
+        inputRef.current?.focus({ preventScroll: true });
+      }
+    }, 20);
   }, [activeNow, runtime.id, runtime.initial]);
 
   const paused =
@@ -313,8 +346,12 @@ export function TypeSession({
   }, [paused, timerStarted]);
 
   useEffect(() => {
+    if (settings.builtInKeyboard) {
+      inputRef.current?.blur();
+      return;
+    }
     if (!suspended && !saveError) focusInput();
-  }, [focusInput, saveError, suspended]);
+  }, [focusInput, saveError, settings.builtInKeyboard, suspended]);
 
   useEffect(() => {
     if (suspended) setHintVisible(false);
@@ -667,6 +704,50 @@ export function TypeSession({
     void finishWord(snapshot, word, item, true);
   }, [finishWord, item, runtime, saveError, word]);
 
+  const eraseKeyboardPending = useCallback(() => {
+    if (
+      submittingRef.current ||
+      saveError ||
+      suspended ||
+      heldRef.current
+    ) {
+      return;
+    }
+    const before = runtime.matcher.snapshot();
+    if (!before.pending) return;
+    runtime.matcher.erasePending();
+    const after = runtime.matcher.snapshot();
+    setWordState((current) =>
+      current.runtimeId === runtime.id
+        ? { ...current, snapshot: after }
+        : current,
+    );
+  }, [runtime, saveError, suspended]);
+
+  const toggleBuiltInKeyboard = useCallback(() => {
+    const next = !settings.builtInKeyboard;
+    if (next) {
+      const field = inputRef.current;
+      if (field) {
+        // Keep a late compositionend from replaying the native buffer into
+        // the word after the in-page keyboard has taken over.
+        compositionBufferRef.current = field.value;
+        compositionConsumedRef.current = true;
+        compositionRuntimeRef.current = "";
+        field.blur();
+        field.value = "";
+      }
+      composingRef.current = false;
+      suppressInputRef.current = null;
+    }
+    void updateSettings({ builtInKeyboard: next }).catch((error: unknown) => {
+      notify(
+        error instanceof Error ? error.message : "内置键盘设置保存失败。",
+        "error",
+      );
+    });
+  }, [notify, settings.builtInKeyboard, updateSettings]);
+
   const retrySave = useCallback(() => {
     const answer = pendingAnswerRef.current;
     if (!answer || submittingRef.current) return;
@@ -902,7 +983,10 @@ export function TypeSession({
 
   return (
     <section
-      className="ty-practice"
+      className={cx(
+        "ty-practice",
+        settings.builtInKeyboard && !suspended && "has-keyboard",
+      )}
       data-session-id={session.id}
       onPointerDown={focusFromBackground}
     >
@@ -1046,7 +1130,10 @@ export function TypeSession({
 
         <input
           ref={inputRef}
-          className="ty-hidden-input"
+          className={cx(
+            "ty-hidden-input",
+            settings.builtInKeyboard && "is-keyboard-mode",
+          )}
           aria-label="在这里打读音"
           autoFocus
           autoCapitalize="off"
@@ -1060,7 +1147,7 @@ export function TypeSession({
           onCompositionEnd={handleCompositionEnd}
           onInput={handleInput}
           onPointerDown={unlockAudio}
-          disabled={Boolean(saveError)}
+          disabled={Boolean(saveError) || settings.builtInKeyboard}
         />
       </div>
 
@@ -1106,7 +1193,37 @@ export function TypeSession({
             ) : null}
           </>
         )}
+        <button
+          type="button"
+          className={cx(
+            "ty-hint-button",
+            "ty-keyboard-toggle",
+            settings.builtInKeyboard && "is-held",
+          )}
+          aria-pressed={settings.builtInKeyboard}
+          onClick={toggleBuiltInKeyboard}
+          disabled={Boolean(saveError)}
+        >
+          <Icon name="keyboard" size={16} strokeWidth={2} />
+          {settings.builtInKeyboard ? "收起键盘" : "内置键盘"}
+        </button>
       </div>
+
+      {settings.builtInKeyboard && !suspended ? (
+        <TypeKeyboard
+          mode={keyboardMode}
+          resetKey={runtime.id}
+          kanaEnabled={settings.kanaInput}
+          romajiEnabled={settings.romajiInput}
+          disabled={Boolean(saveError) || submitting || Boolean(held)}
+          canBackspace={!held && Boolean(displaySnapshot.pending)}
+          onModeChange={setKeyboardMode}
+          onKana={(kana) => processCharacter(kana, true)}
+          onRomaji={(key) => processCharacter(key, false)}
+          onBackspace={eraseKeyboardPending}
+          onClose={toggleBuiltInKeyboard}
+        />
+      ) : null}
 
       {saveError ? (
         <div className="ty-save-error" role="alert">
@@ -1120,7 +1237,9 @@ export function TypeSession({
       <p className="ty-shortcuts">
         {held
           ? "本词已记录 · 按 Enter 或点击「下一个词」继续"
-          : "罗马字怎么拼都行 · 按住空格看读音 · Esc 跳过 · 电脑上请先切到英文输入"}
+          : settings.builtInKeyboard
+            ? "点击下方网页键盘输入 · 可切换假名 / 罗马字 · Esc 跳过"
+            : "罗马字怎么拼都行 · 按住空格看读音 · Esc 跳过 · 电脑上请先切到英文输入"}
       </p>
 
       <span className="sr-only" aria-live="polite">

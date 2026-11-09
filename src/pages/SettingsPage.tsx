@@ -437,6 +437,14 @@ export function SettingsPage() {
               description="支持日语输入法直接输入 かんじ。"
             />
             <Toggle
+              checked={settings.builtInKeyboard}
+              onChange={(checked) =>
+                void patch({ builtInKeyboard: checked })
+              }
+              label="使用网页内置键盘"
+              description="在打字页显示可点击的五十音 / 罗马字键盘，不再调出系统输入法。练习中也可以随时开关。"
+            />
+            <Toggle
               checked={settings.keySound}
               onChange={(checked) => void patch({ keySound: checked })}
               label="按键与答题音效"

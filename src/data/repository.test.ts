@@ -15,6 +15,7 @@ function validBackup(): BackupData {
       showReading: false,
       romajiInput: true,
       kanaInput: true,
+      builtInKeyboard: false,
       keySound: true,
       speakAfterComplete: false,
       autoAdvance: true,
