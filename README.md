@@ -331,20 +331,24 @@ normalizeWord(surface) + "|" + canonicalizeKana(reading)
 
 ## GitHub Pages 部署
 
+当前线上地址：<https://delete039.github.io/yomi-dojo/>
+
 项目已包含 `.github/workflows/deploy.yml`：
 
 1. 将完整项目推送到 GitHub 仓库的 `main` 分支。
 2. 在仓库 `Settings → Pages → Source` 选择 **GitHub Actions**。
 3. 推送后工作流会执行 `npm ci`、单元测试、生产构建，并发布 `dist`。
-4. 站点地址通常为 `https://<用户名>.github.io/<仓库名>/`。
+4. 站点地址为 `https://<用户名>.github.io/<仓库名>/`；本项目为 `https://delete039.github.io/yomi-dojo/`。
 
 `vite.config.ts` 使用 `base: "./"`，路由使用 hash，因此项目页子路径不需要额外改写。`public/data` 必须随仓库提交；根目录 `.gitignore` 只忽略开发用的 `/data/`，不会忽略运行时数据。
 
 本项目没有后端。GitHub Pages 只提供静态文件；每个浏览器拥有独立 IndexedDB 数据，不会在不同设备之间同步。迁移数据请使用设置页的 JSON 备份。
 
+真实 GitHub Pages 验证已于 2026-11-09 完成：Actions 构建与部署成功；线上首页、词库、打字题面、字体和 Service Worker 均可加载，断网重载仍可进入打字页。
+
 ## 验收状态
 
-功能级结果以 [docs/FEATURE-MATRIX.md](docs/FEATURE-MATRIX.md) 为准；当前构建的独立复核记录见 [docs/reviews/verification-r8.md](docs/reviews/verification-r8.md)。最终验收命令：
+功能级结果以 [docs/FEATURE-MATRIX.md](docs/FEATURE-MATRIX.md) 为准。最终验收命令：
 
 ```powershell
 npx tsc -b

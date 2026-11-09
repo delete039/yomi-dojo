@@ -23,16 +23,7 @@ npx playwright test        38 个 E2E 通过
 npm run test:pages         GitHub Pages 子路径离线冒烟通过
 ```
 
-当前构建的独立复核见 [`reviews/verification-r8.md`](reviews/verification-r8.md)。
-
-人工对照证据：
-
-- `docs/reviews/logic-r7.md`、`docs/reviews/ui-r7.md`、`docs/reviews/ux-r7.md`：三路独立评审；仅对应 r7 旧构建
-- `work/r8/ui-r8-audit.json`、`work/r8/ui-r8-fallback.json`、`work/r8/ux-r8-evidence.json`：当前构建的实测 JSON
-- `work/audit-desktop-initial.png`、`work/audit-desktop-result.png`、`work/audit-mobile-initial.png`
-- `work/record-first.png`、`work/record-second.png`
-- `work/audit-metrics.json`（1041×917 与 390×844 的 computed geometry）
-- 参考站本机实际截图与 DOM：内置词包结算、初始题面、隐藏输入、读音槽、提示按钮、组格与面板
+当前构建的线上部署：<https://delete039.github.io/yomi-dojo/>。内部评审记录、截图与临时测试产物未纳入公开仓库；这里只保留可由当前源码和自动化命令复现的验收结论。
 
 ## 2. 核心功能：`/type` 页面与打字流程
 
@@ -119,7 +110,7 @@ npm run test:pages         GitHub Pages 子路径离线冒烟通过
 | 损坏/恶意备份拒绝且不覆盖现有数据 | ✅ 已完整实现 | E2E `backup-errors` |
 | 数据只存在当前浏览器、无账号/云端 | ✅ 已完整实现 | 无后端；README 与设置页说明 |
 | 离线重新打开应用 | ✅ 已完整实现 | Service Worker 预缓存 shell、字体与内置词包；E2E `offline` 断网 reload 后仍可进入题目 |
-| GitHub Pages 静态部署 | ✅ 已完整实现（本机构建验证） | `.github/workflows/deploy.yml`、`base:"./"`、hash 路由；未在真实 GitHub 仓库触发工作流 |
+| GitHub Pages 静态部署 | ✅ 已完整实现（真实线上验证） | <https://delete039.github.io/yomi-dojo/>；GitHub Actions 构建/部署成功，线上打字页、字体与断网重载通过 |
 | 跨标签页并发写入 | ❔ 无法验证 | 单标签页保存延迟/失败已测；两个标签页同时写同一 plan 未覆盖 |
 | 真机 iOS/Android IME | ❔ 无法验证 | Chromium composition 路径已实现；未逐机型实测 |
 | 真实音频输出/震动/日语语音 | ❔ 无法验证 | Web Audio / speechSynthesis 调用存在；自动化不能听音 |
@@ -151,7 +142,7 @@ npm run test:pages         GitHub Pages 子路径离线冒烟通过
 1. 没有参考站后端、账号和私有调度参数，无法证明服务端队列与额度行为等价。
 2. 未做真实手机键盘、不同 IME、真实音频设备和跨标签页并发测试。
 3. 视觉尺寸已按 1041×917 / 390×844 测量；逐像素字体渲染会因操作系统字体回退产生微小差异。
-4. GitHub Actions 工作流未在真实仓库触发；本机生产构建与 Pages 子路径配置已验证。
+4. GitHub Actions 已在真实仓库成功部署；线上首页、打字页、字体与断网重载已验证。
 
 ## 8. 结论
 
