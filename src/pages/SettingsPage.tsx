@@ -445,6 +445,14 @@ export function SettingsPage() {
               description="在打字页显示可点击的五十音 / 罗马字键盘，不再调出系统输入法。练习中也可以随时开关。"
             />
             <Toggle
+              checked={settings.keyboardMode === "romaji"}
+              onChange={(checked) =>
+                void patch({ keyboardMode: checked ? "romaji" : "kana" })
+              }
+              label="网页键盘默认使用罗马字"
+              description="默认显示 26 键罗马字键盘；关闭则默认显示假名九宫格。练习中切换布局后会记住，并作为下次默认。"
+            />
+            <Toggle
               checked={settings.keySound}
               onChange={(checked) => void patch({ keySound: checked })}
               label="按键与答题音效"

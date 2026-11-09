@@ -57,6 +57,21 @@ export function TypeSettingsPanel() {
     );
   };
 
+  const modeButton = (value: "romaji" | "kana", label: string) => {
+    const active = settings.keyboardMode === value;
+    return (
+      <button
+        type="button"
+        role="radio"
+        aria-checked={active}
+        className={cx("ty-segment-option", active && "is-active")}
+        onClick={() => change({ keyboardMode: value })}
+      >
+        {label}
+      </button>
+    );
+  };
+
   return (
     <section id="ty-settings-panel" className="ty-settings-panel" aria-label="打字设置">
       <TypeSettingRow label="读音">
@@ -66,6 +81,10 @@ export function TypeSettingsPanel() {
       <TypeSettingRow label="键盘">
         {booleanButton("builtInKeyboard", false, "系统键盘")}
         {booleanButton("builtInKeyboard", true, "网页内置")}
+      </TypeSettingRow>
+      <TypeSettingRow label="布局">
+        {modeButton("romaji", "罗马字")}
+        {modeButton("kana", "假名")}
       </TypeSettingRow>
       <TypeSettingRow label="按键音">
         {booleanButton("keySound", true, "开")}

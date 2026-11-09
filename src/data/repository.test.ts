@@ -16,6 +16,7 @@ function validBackup(): BackupData {
       romajiInput: true,
       kanaInput: true,
       builtInKeyboard: false,
+      keyboardMode: "romaji",
       keySound: true,
       speakAfterComplete: false,
       autoAdvance: true,

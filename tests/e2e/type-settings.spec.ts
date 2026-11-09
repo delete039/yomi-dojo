@@ -44,6 +44,26 @@ test("showing readings marks an error-free word as seen", async ({ page }) => {
   await expect(page.locator(".ty-weak-tag")).toHaveText("看了");
 });
 
+test("keyboard layout starts on romaji and applies a saved kana choice", async ({
+  page,
+}) => {
+  await gotoType(page, { batchSize: 1 });
+  await page.getByRole("button", { name: "设置", exact: true }).click();
+  const layout = page.getByRole("radiogroup", { name: "布局" });
+  await expect(
+    layout.getByRole("radio", { name: "罗马字" }),
+  ).toHaveAttribute("aria-checked", "true");
+
+  await layout.getByRole("radio", { name: "假名" }).click();
+  await expect(layout.getByRole("radio", { name: "假名" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await page.getByRole("button", { name: "设置", exact: true }).click();
+  await page.getByRole("button", { name: "内置键盘" }).click();
+  await expect(page.locator('.ty-keyboard[data-mode="kana"]')).toBeVisible();
+});
+
 test("legacy settings migrate to hiding the reading once", async ({ page }) => {
   await gotoType(page, { batchSize: 1 });
 

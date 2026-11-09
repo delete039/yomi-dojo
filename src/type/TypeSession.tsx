@@ -173,7 +173,7 @@ export function TypeSession({
     streak: correctStreak(session.answers),
   }));
   const [keyboardMode, setKeyboardMode] = useState<TypeKeyboardMode>(
-    settings.kanaInput ? "kana" : "romaji",
+    settings.keyboardMode,
   );
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -219,6 +219,24 @@ export function TypeSession({
   useEffect(() => {
     builtInKeyboardRef.current = settings.builtInKeyboard;
   }, [settings.builtInKeyboard]);
+
+  useEffect(() => {
+    setKeyboardMode(settings.keyboardMode);
+  }, [settings.keyboardMode]);
+
+  const changeKeyboardMode = useCallback(
+    (mode: TypeKeyboardMode) => {
+      setKeyboardMode(mode);
+      if (settings.keyboardMode === mode) return;
+      void updateSettings({ keyboardMode: mode }).catch((error: unknown) => {
+        notify(
+          error instanceof Error ? error.message : "键盘布局设置保存失败。",
+          "error",
+        );
+      });
+    },
+    [notify, settings.keyboardMode, updateSettings],
+  );
 
   useEffect(() => {
     if (
@@ -1217,7 +1235,7 @@ export function TypeSession({
           romajiEnabled={settings.romajiInput}
           disabled={Boolean(saveError) || submitting || Boolean(held)}
           canBackspace={!held && Boolean(displaySnapshot.pending)}
-          onModeChange={setKeyboardMode}
+          onModeChange={changeKeyboardMode}
           onKana={(kana) => processCharacter(kana, true)}
           onRomaji={(key) => processCharacter(key, false)}
           onBackspace={eraseKeyboardPending}

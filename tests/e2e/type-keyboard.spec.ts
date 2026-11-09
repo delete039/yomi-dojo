@@ -81,6 +81,8 @@ test("the native-style kana keyboard completes words and replaces the native fie
 
   await page.getByRole("button", { name: "内置键盘" }).click();
   await expect(page.locator(".ty-keyboard")).toBeVisible();
+  await page.locator('.ty-keyboard [data-switch-to="kana"]').click();
+  await expect(page.locator('.ty-keyboard[data-mode="kana"]')).toBeVisible();
   await expect(page.locator(".ty-hidden-input")).toBeDisabled();
   await expect(
     page.getByRole("button", { name: "收起键盘" }),
@@ -106,7 +108,6 @@ test("the 26-key QWERTY romaji layout feeds the same matcher and keeps its mode"
   const romaji = toRomaji(word.reading);
 
   await page.getByRole("button", { name: "内置键盘" }).click();
-  await page.locator('.ty-keyboard [data-switch-to="romaji"]').click();
   await expect(page.locator('.ty-keyboard[data-mode="romaji"]')).toBeVisible();
   await expect(page.locator(".ty-qwerty-row")).toHaveCount(3);
   await expect(page.locator(".ty-qwerty .ty-letter-key")).toHaveCount(26);
@@ -125,6 +126,7 @@ test("the keyboard stays above the mobile nav and closes back to the native fiel
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoType(page, { batchSize: 2 });
   await page.getByRole("button", { name: "内置键盘" }).click();
+  await page.locator('.ty-keyboard [data-switch-to="kana"]').click();
   await page.waitForTimeout(250);
 
   const panel = await page.locator(".ty-keyboard").boundingBox();
@@ -165,4 +167,27 @@ test("the keyboard stays above the mobile nav and closes back to the native fiel
   await page.waitForSelector(".ty-practice .ty-word, .ty-result");
   await expect(page.locator(".ty-keyboard")).toBeVisible();
   await expect(page.locator(".ty-hidden-input")).toBeDisabled();
+});
+
+test("the built-in keyboard defaults to romaji and remembers the chosen layout", async ({
+  page,
+}) => {
+  await gotoType(page, { batchSize: 1 });
+  await page.getByRole("button", { name: "内置键盘" }).click();
+  await expect(page.locator('.ty-keyboard[data-mode="romaji"]')).toBeVisible();
+
+  await page.locator('.ty-keyboard [data-switch-to="kana"]').click();
+  await expect(page.locator('.ty-keyboard[data-mode="kana"]')).toBeVisible();
+  // The mode is saved through the same settings queue as the keyboard toggle.
+  await page.waitForTimeout(300);
+  await page.reload();
+  await page.waitForSelector(".ty-practice .ty-word, .ty-result");
+  await expect(page.locator('.ty-keyboard[data-mode="kana"]')).toBeVisible();
+
+  await page.locator('.ty-keyboard [data-switch-to="romaji"]').click();
+  await expect(page.locator('.ty-keyboard[data-mode="romaji"]')).toBeVisible();
+  await page.waitForTimeout(300);
+  await page.reload();
+  await page.waitForSelector(".ty-practice .ty-word, .ty-result");
+  await expect(page.locator('.ty-keyboard[data-mode="romaji"]')).toBeVisible();
 });

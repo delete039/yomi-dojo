@@ -20,6 +20,19 @@ describe("typing settings", () => {
     );
   });
 
+  it("defaults the in-page keyboard to romaji and preserves a kana choice", () => {
+    expect(DEFAULT_SETTINGS.keyboardMode).toBe("romaji");
+    expect(normalizeSettings(undefined).keyboardMode).toBe("romaji");
+    expect(normalizeSettings({ keyboardMode: "kana" }).keyboardMode).toBe(
+      "kana",
+    );
+    expect(
+      normalizeSettings({
+        keyboardMode: "unsupported" as "kana",
+      }).keyboardMode,
+    ).toBe("romaji");
+  });
+
   it("keeps an explicit show-reading opt-in after migration", () => {
     const migrated = migrateSettings(
       { ...DEFAULT_SETTINGS, showReading: true },
