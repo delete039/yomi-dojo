@@ -112,7 +112,7 @@ npm run test:pages         GitHub Pages 子路径离线冒烟通过
 | 离线重新打开应用 | ✅ 已完整实现 | Service Worker 预缓存 shell、字体与内置词包；E2E `offline` 断网 reload 后仍可进入题目 |
 | GitHub Pages 静态部署 | ✅ 已完整实现（真实线上验证） | <https://delete039.github.io/yomi-dojo/>；GitHub Actions 构建/部署成功，线上打字页、字体与断网重载通过 |
 | 跨标签页并发写入 | ❔ 无法验证 | 单标签页保存延迟/失败已测；两个标签页同时写同一 plan 未覆盖 |
-| 真机 iOS/Android IME | ❔ 无法验证 | Chromium composition 路径已实现；未逐机型实测 |
+| 真机 iOS/Android IME | ❔ 无法验证 | Chromium composition、CDP IME、实时组合与回车兜底已实现；未逐机型实测 |
 | 真实音频输出/震动/日语语音 | ❔ 无法验证 | Web Audio / speechSynthesis 调用存在；自动化不能听音 |
 
 ## 6. 明确不迁移

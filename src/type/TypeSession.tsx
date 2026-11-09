@@ -176,7 +176,10 @@ export function TypeSession({
   const slotsRef = useRef<HTMLDivElement>(null);
   const aliveRef = useRef(true);
   const composingRef = useRef(false);
-  const suppressNextInputRef = useRef(false);
+  const compositionBufferRef = useRef("");
+  const compositionConsumedRef = useRef(false);
+  const compositionRuntimeRef = useRef("");
+  const suppressInputRef = useRef<{ value: string; at: number } | null>(null);
   const submittingRef = useRef(false);
   const timerStartedRef = useRef(false);
   const totalKeysRef = useRef(0);
@@ -769,27 +772,109 @@ export function TypeSession({
     }
   };
 
-  const handleCompositionStart = () => {
+  const startComposition = () => {
+    if (!composingRef.current) {
+      compositionBufferRef.current = "";
+      compositionConsumedRef.current = false;
+      compositionRuntimeRef.current = runtime.id;
+      suppressInputRef.current = null;
+    }
     composingRef.current = true;
+  };
+
+  /**
+   * Android IMEs often keep the whole reading in a composing region and only
+   * fire compositionend after Enter. Consume newly appended composing text as
+   * it arrives so the exercise progresses before the IME commits. Replaced
+   * text is an IME conversion (for example "ka" -> "か"), which must not be
+   * replayed because the romaji keystrokes were already counted.
+   */
+  const consumeComposition = (value: string) => {
+    if (!value || value === compositionBufferRef.current) return;
+    const previous = compositionBufferRef.current;
+    const appended = compositionConsumedRef.current
+      ? value.startsWith(previous)
+        ? value.slice(previous.length)
+        : ""
+      : value;
+    compositionBufferRef.current = value;
+    if (!appended) return;
+    compositionConsumedRef.current = true;
+    processText(appended);
+  };
+
+  const handleCompositionStart = () => {
+    startComposition();
+  };
+
+  const handleCompositionUpdate = (
+    event: CompositionEvent<HTMLInputElement>,
+  ) => {
+    startComposition();
+    consumeComposition(event.data || event.currentTarget.value);
   };
 
   const handleCompositionEnd = (event: CompositionEvent<HTMLInputElement>) => {
     composingRef.current = false;
-    suppressNextInputRef.current = true;
-    const value = event.currentTarget.value;
-    event.currentTarget.value = "";
-    processText(value);
+    const input = event.currentTarget;
+    const value = input.value;
+    const buffer = compositionBufferRef.current;
+    const wordChanged = compositionRuntimeRef.current !== runtime.id;
+    let trailing = "";
+
+    if (!compositionConsumedRef.current) {
+      // Some IMEs only expose their text when the composition is committed.
+      if (!wordChanged) trailing = value;
+    } else if (value.startsWith(buffer)) {
+      // Plain appended text belongs to the next word too.
+      trailing = value.slice(buffer.length);
+    } else if (!wordChanged) {
+      // Final kana/kanji conversion: keep only the reading that is still ahead
+      // of the matcher, and discard the romaji pending state it replaces.
+      const typed = runtime.matcher.snapshot().typedKana;
+      const finalKana = normalizeTypingTarget(value);
+      if (finalKana.startsWith(typed)) {
+        trailing = finalKana.slice(Array.from(typed).length);
+        if (runtime.matcher.snapshot().pending) runtime.matcher.erasePending();
+      }
+    }
+
+    input.value = "";
+    if (value) {
+      suppressInputRef.current = { value, at: performance.now() };
+    }
+    compositionBufferRef.current = "";
+    compositionConsumedRef.current = false;
+    compositionRuntimeRef.current = "";
+    if (trailing) processText(trailing);
   };
 
   const handleInput = (event: FormEvent<HTMLInputElement>) => {
-    if (composingRef.current) return;
-    const value = event.currentTarget.value;
-    event.currentTarget.value = "";
-    if (!value) return;
-    if (suppressNextInputRef.current) {
-      suppressNextInputRef.current = false;
+    const input = event.currentTarget;
+    const value = input.value;
+    const native = event.nativeEvent as InputEvent;
+    const compositionCommit = native.inputType === "insertFromComposition";
+    const compositionInput = native.inputType === "insertCompositionText";
+    if (!composingRef.current && (native.isComposing || compositionInput)) {
+      // Some Android IMEs omit compositionstart but still mark input events.
+      startComposition();
+    }
+    if (composingRef.current || native.isComposing) {
+      consumeComposition(value);
       return;
     }
+    input.value = "";
+    if (!value) return;
+    const suppressed = suppressInputRef.current;
+    if (
+      suppressed &&
+      suppressed.value === value &&
+      (compositionCommit || performance.now() - suppressed.at < 120)
+    ) {
+      suppressInputRef.current = null;
+      return;
+    }
+    suppressInputRef.current = null;
     processText(value);
   };
 
@@ -971,6 +1056,7 @@ export function TypeSession({
           inputMode="text"
           lang="ja"
           onCompositionStart={handleCompositionStart}
+          onCompositionUpdate={handleCompositionUpdate}
           onCompositionEnd={handleCompositionEnd}
           onInput={handleInput}
           onPointerDown={unlockAudio}
