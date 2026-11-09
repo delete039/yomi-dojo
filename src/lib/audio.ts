@@ -1,5 +1,6 @@
 let context: AudioContext | null = null;
 let keyNoise: AudioBuffer | null = null;
+let unlocked = false;
 
 function getContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -25,26 +26,19 @@ function getKeyNoise(audio: AudioContext): AudioBuffer {
   return buffer;
 }
 
-function tone(
-  frequency: number,
-  duration: number,
-  volume: number,
-  type: OscillatorType = "sine",
-  delay = 0,
-): void {
+/**
+ * Prime Web Audio during the first direct touch/click. Some mobile browsers
+ * keep a context created later by a soft-keyboard input event suspended.
+ */
+export function unlockAudio(): void {
   const audio = getContext();
   if (!audio) return;
-  const oscillator = audio.createOscillator();
-  const gain = audio.createGain();
-  const start = audio.currentTime + delay;
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(frequency, start);
-  gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(volume, start + 0.008);
-  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-  oscillator.connect(gain).connect(audio.destination);
-  oscillator.start(start);
-  oscillator.stop(start + duration + 0.02);
+  if (unlocked) return;
+  const source = audio.createBufferSource();
+  source.buffer = audio.createBuffer(1, 1, audio.sampleRate);
+  source.connect(audio.destination);
+  source.start(0);
+  unlocked = true;
 }
 
 export function playKey(): void {
@@ -114,12 +108,6 @@ export function playError(): void {
     oscillator.connect(gain).connect(audio.destination);
     oscillator.start(now + delay);
     oscillator.stop(now + delay + 0.1);
-  });
-}
-
-export function playFinish(): void {
-  [523, 659, 784, 1046].forEach((frequency, index) => {
-    tone(frequency, 0.22, 0.03, "sine", index * 0.09);
   });
 }
 

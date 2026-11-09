@@ -26,6 +26,7 @@ import {
   playKey,
   playSuccess,
   speakJapanese,
+  unlockAudio,
   vibrateError,
 } from "../lib/audio";
 import {
@@ -218,6 +219,7 @@ export function TypeSession({
 
   const focusFromBackground = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
+      unlockAudio();
       const target = event.target;
       if (
         target instanceof Element &&
@@ -478,10 +480,7 @@ export function TypeSession({
 
       if (!skipped) {
         showExitOverlay(Array.from(normalizeTypingTarget(resultWord.reading)));
-        // The final word hands the completion sound over to the result chord
-        // so the two do not stack on top of each other.
-        const finalAnswer = session.answers.length + 1 >= session.queue.length;
-        if (settings.keySound && !finalAnswer) playSuccess();
+        if (settings.keySound) playSuccess();
         if (settings.speakAfterComplete) speakJapanese(resultWord.reading);
       }
 
@@ -507,8 +506,6 @@ export function TypeSession({
       onFinished,
       recordSessionAnswer,
       session.id,
-      session.answers.length,
-      session.queue.length,
       settings.autoAdvance,
       settings.keySound,
       settings.speakAfterComplete,
@@ -682,6 +679,7 @@ export function TypeSession({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (suspended) return;
+      unlockAudio();
 
       if (saveError) {
         if (event.key === "Enter") {
@@ -961,6 +959,7 @@ export function TypeSession({
           onCompositionStart={handleCompositionStart}
           onCompositionEnd={handleCompositionEnd}
           onInput={handleInput}
+          onPointerDown={unlockAudio}
           disabled={Boolean(saveError)}
         />
       </div>

@@ -4,7 +4,6 @@ import { navigate } from "../app/router";
 import { Icon } from "../components/Icons";
 import { isTypableWord } from "../data/session";
 import type { Pack, SessionSummary, WordSnapshot } from "../data/types";
-import { playFinish } from "../lib/audio";
 import { shuffle } from "../lib/utils";
 
 function clock(seconds: number): string {
@@ -100,7 +99,7 @@ export function TypeResult({
   onRedoGroup: () => Promise<void>;
   onDrillWeak: (keys: string[]) => Promise<void>;
 }) {
-  const { settings, wordStats } = useApp();
+  const { wordStats } = useApp();
   const [busy, setBusy] = useState<"next" | "redo" | "drill" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const weak = useMemo(() => {
@@ -173,11 +172,6 @@ export function TypeResult({
   }, [pack.words, summary.answers, summary.wordSnapshots]);
 
   const accuracy = summary.typingAccuracy ?? summary.accuracy;
-
-  useEffect(() => {
-    if (settings.keySound) playFinish();
-    // The result chord is intentionally played once when the result opens.
-  }, []);
 
   const run = async (kind: "next" | "redo" | "drill") => {
     setBusy(kind);
