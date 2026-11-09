@@ -32,22 +32,41 @@ test("mobile type page uses the five-item bottom navigation and completes a word
   });
 });
 
-test("mobile typing exposes a touchable input that accepts input without programmatic focus", async ({
+test("tapping the reading underlines opens the mobile input without a visible field", async ({
   page,
 }) => {
   await gotoType(page, { batchSize: 2 });
 
   const input = page.locator(".ty-hidden-input");
   await expect(input).toBeVisible();
-  await expect(input).toHaveAttribute("placeholder", "点这里，开始输入读音");
+  expect(await input.getAttribute("placeholder")).toBeNull();
 
-  const box = await input.boundingBox();
-  expect(box?.width).toBeGreaterThan(200);
-  expect(box?.height).toBeGreaterThanOrEqual(44);
+  const inputBox = await input.boundingBox();
+  const underlineBox = await page
+    .locator(".ty-reading-underline")
+    .first()
+    .boundingBox();
+  expect(inputBox?.width).toBeGreaterThan(200);
+  expect(inputBox?.height).toBeGreaterThanOrEqual(44);
+  expect(underlineBox).not.toBeNull();
+  expect(underlineBox!.x).toBeGreaterThanOrEqual(inputBox!.x);
+  expect(underlineBox!.y).toBeGreaterThanOrEqual(inputBox!.y);
+  expect(underlineBox!.x + underlineBox!.width).toBeLessThanOrEqual(
+    inputBox!.x + inputBox!.width,
+  );
+  expect(underlineBox!.y + underlineBox!.height).toBeLessThanOrEqual(
+    inputBox!.y + inputBox!.height,
+  );
   await expect(input).toHaveCSS("pointer-events", "auto");
   await expect(input).toHaveCSS("font-size", "16px");
+  await expect(input).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 
-  await input.tap();
+  // Tap the visible underline itself. The transparent native input sits above
+  // it, so this exercises the same direct gesture used to open a soft keyboard.
+  await page.touchscreen.tap(
+    underlineBox!.x + underlineBox!.width / 2,
+    underlineBox!.y + underlineBox!.height / 2,
+  );
   await expect(input).toBeFocused();
 
   // Deliberately skip focusTyping here: typing must work after the user's

@@ -946,25 +946,24 @@ export function TypeSession({
             );
           })}
         </div>
-      </div>
 
-      <input
-        ref={inputRef}
-        className="ty-hidden-input"
-        aria-label="在这里打读音"
-        placeholder="点这里，开始输入读音"
-        autoFocus
-        autoCapitalize="off"
-        autoCorrect="off"
-        autoComplete="off"
-        spellCheck={false}
-        inputMode="text"
-        lang="ja"
-        onCompositionStart={handleCompositionStart}
-        onCompositionEnd={handleCompositionEnd}
-        onInput={handleInput}
-        disabled={Boolean(saveError)}
-      />
+        <input
+          ref={inputRef}
+          className="ty-hidden-input"
+          aria-label="在这里打读音"
+          autoFocus
+          autoCapitalize="off"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          inputMode="text"
+          lang="ja"
+          onCompositionStart={handleCompositionStart}
+          onCompositionEnd={handleCompositionEnd}
+          onInput={handleInput}
+          disabled={Boolean(saveError)}
+        />
+      </div>
 
       <div className="ty-hint-actions">
         {held ? (
