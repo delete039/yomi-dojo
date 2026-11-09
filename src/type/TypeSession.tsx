@@ -213,8 +213,22 @@ export function TypeSession({
 
   const focusInput = useCallback(() => {
     if (submittingRef.current || saveError) return;
-    window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
+    inputRef.current?.focus({ preventScroll: true });
   }, [saveError]);
+
+  const focusFromBackground = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("button, a, input, textarea, select, label")
+      ) {
+        return;
+      }
+      focusInput();
+    },
+    [focusInput],
+  );
 
   useEffect(
     () => () => {
@@ -403,7 +417,7 @@ export function TypeSession({
     if (!heldRef.current || submittingRef.current || saveError) return;
     heldRef.current = null;
     setHeld(null);
-    window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
+    inputRef.current?.focus({ preventScroll: true });
   }, [saveError]);
 
   const showExitOverlay = useCallback((characters: string[]) => {
@@ -793,23 +807,8 @@ export function TypeSession({
     <section
       className="ty-practice"
       data-session-id={session.id}
-      onClick={() => focusInput()}
+      onPointerDown={focusFromBackground}
     >
-      <input
-        ref={inputRef}
-        className="ty-hidden-input"
-        aria-label="在这里打读音"
-        autoFocus
-        autoCapitalize="off"
-        autoCorrect="off"
-        autoComplete="off"
-        spellCheck={false}
-        onCompositionStart={handleCompositionStart}
-        onCompositionEnd={handleCompositionEnd}
-        onInput={handleInput}
-        disabled={submitting || Boolean(saveError)}
-      />
-
       <div className="ty-progress-row">
         <span>
           {currentNumber} / {session.queue.length}
@@ -948,6 +947,24 @@ export function TypeSession({
           })}
         </div>
       </div>
+
+      <input
+        ref={inputRef}
+        className="ty-hidden-input"
+        aria-label="在这里打读音"
+        placeholder="点这里，开始输入读音"
+        autoFocus
+        autoCapitalize="off"
+        autoCorrect="off"
+        autoComplete="off"
+        spellCheck={false}
+        inputMode="text"
+        lang="ja"
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
+        onInput={handleInput}
+        disabled={Boolean(saveError)}
+      />
 
       <div className="ty-hint-actions">
         {held ? (

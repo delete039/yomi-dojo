@@ -1836,6 +1836,41 @@ button.ty-group-cell:hover:not(:disabled) {
     margin-top: 30px;
   }
 
+  /* The desktop field is intentionally 1x1 so typing can happen anywhere.
+     Mobile browsers only open the soft keyboard for a real touch target. */
+  .ty-app .ty-hidden-input {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: min(100%, 320px);
+    height: 46px;
+    min-height: 46px;
+    max-height: 46px;
+    margin-top: 26.25px;
+    padding: 0 13.5px;
+    color: var(--ty-fg);
+    background: var(--ty-surface);
+    border: var(--ty-hairline) solid var(--ty-border-strong);
+    border-radius: 9px;
+    opacity: 1;
+    pointer-events: auto;
+    caret-color: var(--ty-accent);
+    font-size: 16px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .ty-app .ty-hidden-input::placeholder {
+    color: var(--ty-subtle);
+    font-size: 13.125px;
+  }
+
+  .ty-app .ty-hidden-input:focus {
+    border-color: var(--ty-accent);
+    outline: 0;
+    box-shadow: 0 0 0 1px rgba(214, 197, 156, 0.28);
+  }
+
   .ty-progress-row {
     height: 19.69px;
     gap: 5.625px;
@@ -1935,7 +1970,7 @@ button.ty-group-cell:hover:not(:disabled) {
   }
 
   .ty-hint-actions {
-    margin-top: 45px;
+    margin-top: 21px;
     gap: 6.75px;
   }
 
