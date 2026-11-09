@@ -1,0 +1,14 @@
+node_modules/
+dist/
+/data/
+.npm-cache/
+test-results/
+playwright-report/
+/work/
+/outputs/
+/research-ego/
+/docs/reviews/
+/playwright-install.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
