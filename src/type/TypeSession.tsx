@@ -1221,6 +1221,8 @@ export function TypeSession({
           onKana={(kana) => processCharacter(kana, true)}
           onRomaji={(key) => processCharacter(key, false)}
           onBackspace={eraseKeyboardPending}
+          onHintStart={revealHint}
+          onHintEnd={hideHint}
           onClose={toggleBuiltInKeyboard}
         />
       ) : null}

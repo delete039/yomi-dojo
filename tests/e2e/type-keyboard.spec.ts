@@ -1,29 +1,79 @@
 import { expect, test, type Page } from "@playwright/test";
 import { toRomaji } from "wanakana";
-import { kanaKeyboardSteps } from "../../src/lib/kanaKeyboard";
+import {
+  kanaFlickSteps,
+  type FlickDirection,
+} from "../../src/lib/kanaKeyboard";
 import { currentWord, gotoType, waitForNextWord } from "./helpers";
+
+async function flickKey(
+  page: Page,
+  keyId: string,
+  direction: FlickDirection,
+): Promise<void> {
+  const key = page.locator(`.ty-keyboard [data-flick="${keyId}"]`);
+  if (direction === "center") {
+    await key.click();
+    await page.waitForTimeout(10);
+    return;
+  }
+
+  const box = await key.boundingBox();
+  if (!box) throw new Error(`找不到键盘按键 ${keyId}`);
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const offset = Math.max(24, Math.min(box.width, box.height) * 0.42);
+  const dx = direction === "left" ? -offset : direction === "right" ? offset : 0;
+  const dy = direction === "up" ? -offset : direction === "down" ? offset : 0;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + dx, y + dy, { steps: 3 });
+  await page.mouse.up();
+  await page.waitForTimeout(10);
+}
+
+async function setKanaMark(page: Page, mark: string): Promise<void> {
+  if (mark === "small") {
+    const small = page.locator('.ty-keyboard [data-mark="small"]');
+    if ((await small.getAttribute("aria-pressed")) !== "true") {
+      await small.click();
+    }
+    return;
+  }
+
+  const desired = mark === "dakuten" ? "dakuten" : "handakuten";
+  const voice = page.locator('.ty-keyboard [data-mark="voice"]');
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if ((await voice.getAttribute("data-voice")) === desired) return;
+    await voice.click();
+  }
+  throw new Error(`无法切换到 ${mark}`);
+}
 
 async function pressKanaWord(page: Page, reading: string): Promise<void> {
   for (const kana of Array.from(reading)) {
-    const steps = kanaKeyboardSteps(kana);
+    const steps = kanaFlickSteps(kana);
+    if (steps.length === 0) throw new Error(`键盘不支持假名「${kana}」`);
     for (const step of steps) {
-      if (step.mark) {
-        await page
-          .locator(`.ty-keyboard [data-mark="${step.mark}"]`)
-          .click();
+      if (step.mark) await setKanaMark(page, step.mark);
+      if (step.direct) {
+        await page.locator(`.ty-keyboard [data-key="${step.direct}"]`).click();
+        await page.waitForTimeout(10);
+      } else if (step.keyId) {
+        await flickKey(page, step.keyId, step.direction);
       }
-      await page.locator(`.ty-keyboard [data-key="${step.key}"]`).click();
     }
   }
 }
 
 async function pressRomajiWord(page: Page, romaji: string): Promise<void> {
-  for (const key of Array.from(romaji)) {
-    await page.locator(`.ty-keyboard [data-key="${key}"]`).click();
+  for (const letter of Array.from(romaji)) {
+    await page.locator(`.ty-keyboard [data-key="${letter}"]`).click();
+    await page.waitForTimeout(10);
   }
 }
 
-test("the built-in kana keyboard completes words and replaces the native field", async ({
+test("the native-style kana keyboard completes words and replaces the native field", async ({
   page,
 }) => {
   await gotoType(page, { batchSize: 2 });
@@ -48,7 +98,7 @@ test("the built-in kana keyboard completes words and replaces the native field",
   await expect(page.getByText("2 个全部一次打对")).toBeVisible();
 });
 
-test("the romaji layout feeds the same matcher and keeps its selected tab", async ({
+test("the 26-key QWERTY romaji layout feeds the same matcher and keeps its mode", async ({
   page,
 }) => {
   await gotoType(page, { batchSize: 1 });
@@ -56,10 +106,13 @@ test("the romaji layout feeds the same matcher and keeps its selected tab", asyn
   const romaji = toRomaji(word.reading);
 
   await page.getByRole("button", { name: "内置键盘" }).click();
-  await page.locator('.ty-keyboard [data-mode="romaji"]').click();
-  await expect(page.locator('.ty-keyboard [data-mode="romaji"]')).toHaveClass(
-    /is-active/,
-  );
+  await page.locator('.ty-keyboard [data-switch-to="romaji"]').click();
+  await expect(page.locator('.ty-keyboard[data-mode="romaji"]')).toBeVisible();
+  await expect(page.locator(".ty-qwerty-row")).toHaveCount(3);
+  await expect(page.locator(".ty-qwerty .ty-letter-key")).toHaveCount(26);
+  await expect(page.locator('.ty-keyboard [data-key="a"]')).toBeVisible();
+  await expect(page.locator('.ty-keyboard [data-key="\'"]')).toBeVisible();
+  await expect(page.locator('.ty-keyboard [data-key="-"]')).toBeVisible();
 
   await pressRomajiWord(page, romaji);
   await page.locator(".ty-result").waitFor();
@@ -82,10 +135,10 @@ test("the keyboard stays above the mobile nav and closes back to the native fiel
   expect(panel!.x).toBeGreaterThanOrEqual(0);
   expect(panel!.x + panel!.width).toBeLessThanOrEqual(390);
 
-  const actions = await page.locator(".ty-keyboard-actions").boundingBox();
-  expect(actions).not.toBeNull();
-  expect(actions!.y + actions!.height).toBeLessThanOrEqual(nav!.y);
-  const key = await page.locator('.ty-keyboard [data-key="あ"]').boundingBox();
+  const grid = await page.locator(".ty-ios-kana").boundingBox();
+  expect(grid).not.toBeNull();
+  expect(grid!.y + grid!.height).toBeLessThanOrEqual(nav!.y);
+  const key = await page.locator('.ty-keyboard [data-flick="a"]').boundingBox();
   expect(key).not.toBeNull();
   expect(key!.width).toBeGreaterThanOrEqual(30);
   expect(key!.height).toBeGreaterThanOrEqual(30);
@@ -96,7 +149,7 @@ test("the keyboard stays above the mobile nav and closes back to the native fiel
   await expect(page.locator(".ty-hidden-input")).toBeDisabled();
   await expect(page.locator(".ty-hidden-input")).not.toBeFocused();
 
-  await page.getByRole("button", { name: "收起键盘" }).click();
+  await page.locator('.ty-keyboard [data-action="hide"]').click();
   await expect(page.locator(".ty-keyboard")).toHaveCount(0);
   await expect(page.locator(".ty-hidden-input")).toBeEnabled();
   await expect(page.locator(".ty-hidden-input")).toBeFocused();
