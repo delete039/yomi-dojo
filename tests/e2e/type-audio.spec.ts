@@ -9,6 +9,7 @@ interface AudioEvent {
 declare global {
   interface Window {
     __audioEvents?: AudioEvent[];
+    __audioContexts?: AudioContext[];
   }
 }
 
@@ -88,4 +89,54 @@ test("typing uses the reference key, error and word-complete sounds", async ({
   expect(completionSounds.filter((entry) => entry.kind === "buffer")).toHaveLength(
     1,
   );
+});
+
+test("re-arms the key sound after the audio context is suspended", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const NativeAudioContext = window.AudioContext;
+    const contexts: AudioContext[] = [];
+    window.__audioContexts = contexts;
+    class TrackedAudioContext extends NativeAudioContext {
+      constructor() {
+        super();
+        contexts.push(this);
+      }
+    }
+    window.AudioContext = TrackedAudioContext as typeof AudioContext;
+  });
+
+  await gotoType(page, { batchSize: 1 });
+  await focusTyping(page);
+
+  await page.keyboard.press("q");
+  await page.waitForFunction(
+    () => window.__audioContexts?.at(-1)?.state === "running",
+  );
+
+  await page.evaluate(async () => {
+    const context = window.__audioContexts?.at(-1);
+    if (!context) throw new Error("AudioContext was not created");
+    await context.suspend();
+  });
+  await page.waitForFunction(
+    () => window.__audioContexts?.at(-1)?.state === "suspended",
+  );
+
+  await page.evaluate(() => {
+    window.__audioEvents!.length = 0;
+  });
+  await page.keyboard.press("q");
+
+  await page.waitForFunction(() => {
+    const events = window.__audioEvents ?? [];
+    return (
+      window.__audioContexts?.at(-1)?.state === "running" &&
+      events.filter((entry) => entry.kind === "buffer").length >= 1 &&
+      events.filter(
+        (entry) => entry.kind === "oscillator" && entry.wave === "triangle",
+      ).length >= 2
+    );
+  });
 });

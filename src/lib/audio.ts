@@ -2,14 +2,28 @@ let context: AudioContext | null = null;
 let keyNoise: AudioBuffer | null = null;
 let unlocked = false;
 
-function getContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
+function createContext(): AudioContext | null {
   const AudioContextClass =
     window.AudioContext ??
     (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioContextClass) return null;
-  context ??= new AudioContextClass();
-  if (context.state === "suspended") void context.resume();
+  const audio = new AudioContextClass();
+  // Backgrounding the tab or locking a phone can suspend the context without
+  // tearing it down. Invalidate the primed flag so the next gesture re-arms it.
+  audio.addEventListener("statechange", () => {
+    if (audio.state !== "running") unlocked = false;
+  });
+  return audio;
+}
+
+function getContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!context || context.state === "closed") {
+    context = createContext();
+    keyNoise = null;
+  }
+  if (!context) return null;
+  if (context.state === "suspended") void context.resume().catch(() => {});
   return context;
 }
 
@@ -33,12 +47,23 @@ function getKeyNoise(audio: AudioContext): AudioBuffer {
 export function unlockAudio(): void {
   const audio = getContext();
   if (!audio) return;
-  if (unlocked) return;
-  const source = audio.createBufferSource();
-  source.buffer = audio.createBuffer(1, 1, audio.sampleRate);
-  source.connect(audio.destination);
-  source.start(0);
-  unlocked = true;
+  if (audio.state === "running" && unlocked) return;
+  try {
+    const source = audio.createBufferSource();
+    source.buffer = audio.createBuffer(1, 1, audio.sampleRate);
+    source.connect(audio.destination);
+    source.start(0);
+    unlocked = true;
+  } catch {
+    // Scheduling can fail while the context is interrupted. The next gesture
+    // retries once the browser has resumed it.
+    unlocked = false;
+  }
+  if (audio.state !== "running") {
+    void audio.resume().catch(() => {
+      unlocked = false;
+    });
+  }
 }
 
 export function playKey(): void {
