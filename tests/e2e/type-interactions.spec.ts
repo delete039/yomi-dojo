@@ -15,9 +15,13 @@ test("combo appears at five keys and survives hint and skip", async ({ page }) =
     "连击行为测试",
     "東京都\tとうきょうと\t东京都\n大阪府\tおおさかふ\t大阪府",
   );
+  const readings: Record<string, string> = {
+    東京都: "とうきょうと",
+    大阪府: "おおさかふ",
+  };
 
   const first = await currentWord(page);
-  expect(first.reading).toBe("とうきょうと");
+  expect(readings[first.word]).toBe("とうきょうと");
   await focusTyping(page);
   await page.keyboard.press("q");
   await expect(page.locator(".ty-combo")).toHaveCount(0);

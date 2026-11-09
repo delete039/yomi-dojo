@@ -422,7 +422,7 @@ export function SettingsPage() {
               checked={settings.showReading}
               onChange={(checked) => void patch({ showReading: checked })}
               label="题目中显示读音"
-              description="适合纯输入练习；开启后仍会记录错误、提示和连击。"
+              description="默认隐藏读音。开启后读音始终可见，本组所有词都会按“看了读音”记录，不计入一次打对。"
             />
             <Toggle
               checked={settings.romajiInput}

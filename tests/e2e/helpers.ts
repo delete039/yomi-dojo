@@ -62,14 +62,23 @@ export async function currentWord(page: Page): Promise<{
   reading: string;
 }> {
   const word = (await page.locator(".ty-word").innerText()).trim();
-  const reading = (await page.locator(".ty-reading-char").allTextContents())
+  const concealed = await page.locator(".ty-reading-char.is-concealed").count();
+  const visibleReading = (await page.locator(".ty-reading-char").allTextContents())
     .join("")
     .replaceAll("・", "")
     .trim();
-  return {
-    word,
-    reading: reading || readingFor(word),
-  };
+  let fallback = "";
+  try {
+    fallback = readingFor(word);
+  } catch {
+    // Custom-pack words may have their reading concealed. Callers that type
+    // custom words can provide the known reading from their fixture.
+  }
+  const completeReading =
+    concealed === 0 && visibleReading
+      ? visibleReading
+      : fallback || visibleReading;
+  return { word, reading: completeReading };
 }
 
 export async function typeKana(page: Page, reading: string): Promise<void> {

@@ -183,6 +183,7 @@ export function TypeSession({
   const correctKeysRef = useRef(0);
   const errorsRef = useRef(0);
   const hintUsedRef = useRef(false);
+  const showReadingRef = useRef(settings.showReading);
   const streakRef = useRef(correctStreak(session.answers));
   const maxStreakRef = useRef(
     session.answers.reduce(
@@ -202,6 +203,10 @@ export function TypeSession({
   useEffect(() => {
     heldRef.current = held;
   }, [held]);
+
+  useEffect(() => {
+    showReadingRef.current = settings.showReading;
+  }, [settings.showReading]);
 
   const activeNow = useCallback(() => {
     return (
@@ -253,7 +258,10 @@ export function TypeSession({
   }, [session.answers]);
 
   useLayoutEffect(() => {
-    setWordState(newUiState(runtime.id, runtime.initial));
+    setWordState({
+      ...newUiState(runtime.id, runtime.initial),
+      hintUsed: showReadingRef.current,
+    });
     setHintVisible(false);
     setSaveError(null);
     setLive({
@@ -265,7 +273,7 @@ export function TypeSession({
     totalKeysRef.current = 0;
     correctKeysRef.current = 0;
     errorsRef.current = 0;
-    hintUsedRef.current = false;
+    hintUsedRef.current = showReadingRef.current;
     wordOffsetRef.current = activeNow();
     pendingAnswerRef.current = null;
     if (errorTimerRef.current !== null) {
@@ -403,6 +411,12 @@ export function TypeSession({
         : current,
     );
   }, [runtime.id]);
+
+  useEffect(() => {
+    // Reading is visible for the whole word, so the word is assisted even if
+    // every keystroke is correct. This also covers enabling it mid-word.
+    if (settings.showReading) markHint();
+  }, [markHint, settings.showReading]);
 
   const revealHint = useCallback(() => {
     if (submittingRef.current || saveError || heldRef.current) return;

@@ -49,6 +49,7 @@ test("inline import creates a selected pack and starts a real typing queue", asy
   );
   const first = await currentWord(page);
   expect(["仮名", "漢字"]).toContain(first.word);
+  const readings: Record<string, string> = { 仮名: "かな", 漢字: "かんじ" };
 
   if (first.word === "仮名") {
     await page.locator(".ty-hidden-input").focus();
@@ -58,10 +59,10 @@ test("inline import creates a selected pack and starts a real typing queue", asy
     await page.keyboard.press("Backspace");
   }
 
-  await typeKana(page, first.reading);
+  await typeKana(page, readings[first.word]);
   await waitForNextWord(page, first.word);
   const second = await currentWord(page);
-  await typeKana(page, second.reading);
+  await typeKana(page, readings[second.word]);
   await page.locator(".ty-result").waitFor();
 
   await openPackPanel(page);

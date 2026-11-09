@@ -10,7 +10,12 @@ import {
   replaceAllStores,
   STORE,
 } from "./db";
-import { normalizeSettings, DEFAULT_SETTINGS } from "./settings";
+import {
+  CURRENT_SETTINGS_REVISION,
+  DEFAULT_SETTINGS,
+  migrateSettings,
+  normalizeSettings,
+} from "./settings";
 import { createEmptyPlan } from "./session";
 import type {
   AppMeta,
@@ -25,6 +30,7 @@ import type {
 const META = {
   seedVersion: "seedVersion",
   settings: "settings",
+  settingsRevision: "settingsRevision",
   selectedPackId: "selectedPackId",
 } as const;
 
@@ -72,19 +78,34 @@ async function seedIfNeeded(): Promise<void> {
   await putMany(STORE.plans, plans);
   await writeMetaValue(META.seedVersion, CURRENT_SEED_VERSION);
   await writeMetaValue(META.settings, DEFAULT_SETTINGS);
+  await writeMetaValue(META.settingsRevision, CURRENT_SETTINGS_REVISION);
 }
 
 export async function loadSnapshot(): Promise<AppSnapshot> {
   await seedIfNeeded();
-  const [packs, plans, wordStats, sessions, storedSettings, selectedPackId] =
+  const [
+    packs,
+    plans,
+    wordStats,
+    sessions,
+    storedSettings,
+    settingsRevision,
+    selectedPackId,
+  ] =
     await Promise.all([
       getAll<Pack>(STORE.packs),
       getAll<PackPlan>(STORE.plans),
       getAll<WordStat>(STORE.wordStats),
       getAll<SessionSummary>(STORE.sessions),
       readMetaValue<Settings>(META.settings),
+      readMetaValue<number>(META.settingsRevision),
       readMetaValue<string>(META.selectedPackId),
     ]);
+  const migrated = migrateSettings(storedSettings, settingsRevision);
+  if (migrated.revision !== settingsRevision) {
+    await writeMetaValue(META.settings, migrated.settings);
+    await writeMetaValue(META.settingsRevision, migrated.revision);
+  }
   const sortedPacks = sortPacks(packs);
   const planMap = new Map(plans.map((plan) => [plan.packId, plan]));
   const missingPlans = sortedPacks
@@ -108,7 +129,7 @@ export async function loadSnapshot(): Promise<AppSnapshot> {
       .filter((plan): plan is PackPlan => Boolean(plan)),
     wordStats: wordStats.sort((a, b) => b.lastReviewedAt - a.lastReviewedAt),
     sessions: sessions.sort((a, b) => b.endedAt - a.endedAt),
-    settings: normalizeSettings(storedSettings),
+    settings: migrated.settings,
     selectedPackId: validSelected,
   };
 }
@@ -337,6 +358,7 @@ export async function parseAndRestoreBackup(text: string): Promise<AppSnapshot> 
     [STORE.sessions]: parsed.sessions,
   });
   await writeMetaValue(META.settings, settings);
+  await writeMetaValue(META.settingsRevision, CURRENT_SETTINGS_REVISION);
   await writeMetaValue(META.selectedPackId, selectedPackId);
   await writeMetaValue(META.seedVersion, CURRENT_SEED_VERSION);
   return loadSnapshot();

@@ -55,7 +55,7 @@ export function TypeSettingsPanel() {
 
   return (
     <section id="ty-settings-panel" className="ty-settings-panel" aria-label="打字设置">
-      <TypeSettingRow label="提示">
+      <TypeSettingRow label="读音">
         {booleanButton("showReading", true, "显示读音")}
         {booleanButton("showReading", false, "不显示")}
       </TypeSettingRow>
